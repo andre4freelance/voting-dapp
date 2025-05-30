@@ -129,5 +129,14 @@ contract Voting {
         emit Voted(_proposalId, msg.sender, _voteYes);
     }
 
-    // --- Fungsi-fungsi lain akan ditambahkan di bawah sini ---
+    /**
+     * @dev Memeriksa apakah sebuah alamat sudah memberikan suara pada proposal tertentu.
+     * @param _proposalId ID dari proposal.
+     * @param _voter Alamat yang ingin diperiksa.
+     * @return bool Mengembalikan true jika sudah vote, false jika belum.
+     */
+    function hasVoted(uint _proposalId, address _voter) public view returns (bool) {
+        require(_proposalId < nextProposalId && proposals[_proposalId].exists, "Proposal ID does not exist.");
+        return proposals[_proposalId].voters[_voter];
+    }
 }

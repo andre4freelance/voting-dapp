@@ -78,6 +78,98 @@ describe("Voting Contract", function () {
         });
     });
 
+    // --- KELOMPOK TES BARU UNTUK FUNGSI VOTE ---
+    describe("vote", function () {
+        let proposalId0; // Kita akan gunakan ini untuk menyimpan ID proposal yang valid
+
+        beforeEach(async function() {
+            // Tambahkan proposal sebelum setiap tes di kelompok 'vote'
+            await votingContract.connect(owner).addProposal("Proposal untuk di-vote");
+            proposalId0 = 0; // Proposal pertama yang dibuat akan memiliki ID 0
+        });
+
+        it("Should allow a user to vote 'yes' on an existing proposal", async function () {
+            // addr1 memberikan suara 'yes' pada proposalId0
+            await expect(votingContract.connect(addr1).vote(proposalId0, true))
+                .to.emit(votingContract, "Voted") // Memeriksa apakah event Voted dipancarkan
+                .withArgs(proposalId0, addr1.address, true); // Dengan argumen yang benar
+
+            const proposal = await votingContract.proposals(proposalId0);
+            expect(proposal.yesVotes).to.equal(1);
+            expect(proposal.noVotes).to.equal(0);
+            expect(await votingContract.hasVoted(proposalId0, addr1.address)).to.be.true; // Cek apakah addr1 sudah tercatat sebagai voter
+        });
+
+        it("Should allow a user to vote 'no' on an existing proposal", async function () {
+            // addr1 memberikan suara 'no' pada proposalId0
+            await expect(votingContract.connect(addr1).vote(proposalId0, false))
+                .to.emit(votingContract, "Voted")
+                .withArgs(proposalId0, addr1.address, false);
+
+            const proposal = await votingContract.proposals(proposalId0);
+            expect(proposal.yesVotes).to.equal(0);
+            expect(proposal.noVotes).to.equal(1);
+            expect(await votingContract.hasVoted(proposalId0, addr1.address)).to.be.true;
+        });
+
+        it("Should revert if trying to vote on a non-existent proposal ID", async function () {
+            const nonExistentProposalId = 99;
+            await expect(votingContract.connect(addr1).vote(nonExistentProposalId, true))
+                .to.be.revertedWith("Proposal ID does not exist.");
+        });
+
+        it("Should revert if a user tries to vote twice on the same proposal", async function () {
+            // addr1 vote pertama kali
+            await votingContract.connect(addr1).vote(proposalId0, true);
+
+            // addr1 mencoba vote kedua kali pada proposal yang sama
+            await expect(votingContract.connect(addr1).vote(proposalId0, false)) // Mencoba vote 'no' kali ini
+                .to.be.revertedWith("You have already voted on this proposal.");
+
+            // Pastikan jumlah vote tidak berubah setelah percobaan vote kedua yang gagal
+            const proposal = await votingContract.proposals(proposalId0);
+            expect(proposal.yesVotes).to.equal(1); // Seharusnya tetap 1 dari vote pertama
+            expect(proposal.noVotes).to.equal(0);
+        });
+
+        it("Should allow multiple users to vote on the same proposal", async function () {
+            // addr1 vote 'yes'
+            await votingContract.connect(addr1).vote(proposalId0, true);
+            // addr2 vote 'no'
+            await votingContract.connect(addr2).vote(proposalId0, false);
+            // owner vote 'yes'
+            await votingContract.connect(owner).vote(proposalId0, true);
+
+            const proposal = await votingContract.proposals(proposalId0);
+            expect(proposal.yesVotes).to.equal(2);
+            expect(proposal.noVotes).to.equal(1);
+
+            expect(await votingContract.hasVoted(proposalId0, addr1.address)).to.be.true;
+            expect(await votingContract.hasVoted(proposalId0, addr2.address)).to.be.true;
+            expect(await votingContract.hasVoted(proposalId0, owner.address)).to.be.true;
+        });
+        
+        it("Should correctly update vote counts for different proposals independently", async function () {
+            // Tambah proposal kedua
+            await votingContract.connect(owner).addProposal("Proposal Kedua untuk di-vote");
+            const proposalId1 = 1;
+
+            // addr1 vote 'yes' di proposal 0
+            await votingContract.connect(addr1).vote(proposalId0, true);
+            // addr2 vote 'yes' di proposal 1
+            await votingContract.connect(addr2).vote(proposalId1, true);
+
+            const proposal0Details = await votingContract.proposals(proposalId0);
+            expect(proposal0Details.yesVotes).to.equal(1);
+            expect(proposal0Details.noVotes).to.equal(0);
+
+            const proposal1Details = await votingContract.proposals(proposalId1);
+            expect(proposal1Details.yesVotes).to.equal(1);
+            expect(proposal1Details.noVotes).to.equal(0);
+        });
+    });
+    // --- Akhir kelompok tes untuk fungsi vote ---
+
     // --- KELOMPOK TES BARU UNTUK FUNGSI BACA DATA ---
     describe("getProposalsCount", function () {
         it("Should return 0 initially", async function () {
