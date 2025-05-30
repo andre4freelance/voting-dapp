@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Aplikasi Voting dApp</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; padding: 15px; background-color: #f4f4f4; }
+        .container { background-color: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
+        h1, h2 { color: #333; }
+        button { padding: 10px 15px; background-color: #007bff; color: white; border: none; border-radius: 5px; cursor: pointer; margin: 5px; }
+        button:hover { background-color: #0056b3; }
+        #proposalsList div { border: 1px solid #eee; padding: 10px; margin-bottom: 10px; border-radius: 4px; background-color: #f9f9f9; }
+        .proposal-actions button { font-size: 0.9em; padding: 5px 10px; margin-right: 5px;}
+        .status { margin-top:15px; padding:10px; background-color:#e9ecef; border-radius:4px; }
+        .hidden { display: none; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Aplikasi Voting Terdesentralisasi</h1>
+
+        <div id="connectionArea">
+            <button id="connectWalletBtn">Hubungkan Wallet MetaMask</button>
+            <p id="walletStatus">Status: Belum terhubung</p>
+            <p id="networkStatus" class="hidden">Jaringan: <span id="networkName"></span></p>
+            <p id="accountInfo" class="hidden">Akun: <span id="signerAddress"></span></p>
+        </div>
+        <hr>
+
+        <div id="appArea" class="hidden">
+            <h2>Daftar Proposal</h2>
+            <div id="proposalsList">
+                </div>
+            <p id="loadingProposals" class="hidden">Memuat proposal...</p>
+            <hr>
+
+            <div id="adminArea" class="hidden">
+                <h2>Area Admin</h2>
+                <input type="text" id="proposalDescription" placeholder="Deskripsi proposal baru" size="50">
+                <button id="addProposalBtn">Tambah Proposal</button>
+            </div>
+        </div>
+
+        <div id="statusMessages" class="status hidden">
+            </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/5.7.2/ethers.umd.min.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>
