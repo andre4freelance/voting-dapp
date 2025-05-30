@@ -78,5 +78,56 @@ describe("Voting Contract", function () {
         });
     });
 
-    // --- Kita akan menambahkan kelompok tes untuk fungsi lain di sini ---
+    // --- KELOMPOK TES BARU UNTUK FUNGSI BACA DATA ---
+    describe("getProposalsCount", function () {
+        it("Should return 0 initially", async function () {
+            expect(await votingContract.getProposalsCount()).to.equal(0);
+        });
+
+        it("Should return the correct count after adding proposals", async function () {
+            await votingContract.connect(owner).addProposal("Proposal X");
+            expect(await votingContract.getProposalsCount()).to.equal(1);
+
+            await votingContract.connect(owner).addProposal("Proposal Y");
+            expect(await votingContract.getProposalsCount()).to.equal(2);
+        });
+    });
+
+    describe("getProposalDetails", function () {
+        it("Should revert if trying to get details for a non-existent proposal ID", async function () {
+            await expect(votingContract.getProposalDetails(0)) // Belum ada proposal
+                .to.be.revertedWith("Proposal ID does not exist.");
+            
+            await votingContract.connect(owner).addProposal("Proposal A"); // Proposal ID 0 ditambahkan
+            await expect(votingContract.getProposalDetails(1)) // ID 1 belum ada
+                .to.be.revertedWith("Proposal ID does not exist.");
+        });
+
+        it("Should return correct details for an existing proposal", async function () {
+            const desc1 = "Is A a good proposal?";
+            await votingContract.connect(owner).addProposal(desc1); // ID 0
+
+            const desc2 = "What about proposal B?";
+            await votingContract.connect(owner).addProposal(desc2); // ID 1
+
+            // Tes untuk proposal pertama (ID 0)
+            const details1 = await votingContract.getProposalDetails(0);
+            expect(details1.id).to.equal(0);
+            expect(details1.description).to.equal(desc1);
+            expect(details1.yesVotes).to.equal(0);
+            expect(details1.noVotes).to.equal(0);
+            expect(details1.exists).to.be.true;
+
+            // Tes untuk proposal kedua (ID 1)
+            // Kita juga bisa destrukturisasi hasilnya seperti ini:
+            const { id, description, yesVotes, noVotes, exists } = await votingContract.getProposalDetails(1);
+            expect(id).to.equal(1);
+            expect(description).to.equal(desc2);
+            expect(yesVotes).to.equal(0);
+            expect(noVotes).to.equal(0);
+            expect(exists).to.be.true;
+        });
+    });
+
+    // --- Kita akan menambahkan kelompok tes untuk fungsi vote di sini nanti ---
 });
