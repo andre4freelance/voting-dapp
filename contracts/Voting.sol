@@ -18,8 +18,8 @@ contract Voting {
     mapping(uint => Proposal) public proposals;
     uint public nextProposalId;
 
-    // event ProposalCreated(uint proposalId, string description);
-    // event Voted(uint proposalId, address voter, bool voteYes);
+    event ProposalCreated(uint proposalId, string description);
+    event Voted(uint proposalId, address voter, bool voteYes);
 
     constructor() {
         owner = msg.sender;
@@ -51,7 +51,7 @@ contract Voting {
         
         nextProposalId++;
 
-        // emit ProposalCreated(currentProposalId, _description);
+        emit ProposalCreated(currentProposalId, _description); // Emit event untuk proposal baru
     }
 
     /**
@@ -100,6 +100,34 @@ contract Voting {
         exists = p.exists; // Seharusnya selalu true jika _proposalId valid
     }
 
-    // --- Fungsi-fungsi lain akan ditambahkan di bawah sini ---
+    /**
+     * @dev Memberikan suara pada sebuah proposal.
+     * @param _proposalId ID dari proposal yang akan divote.
+     * @param _voteYes Pilihan suara (true untuk Ya, false untuk Tidak).
+     */
+    function vote(uint _proposalId, bool _voteYes) public {
+        // 1. Validasi Proposal
+        require(_proposalId < nextProposalId && proposals[_proposalId].exists, "Proposal ID does not exist.");
+        
+        // Dapatkan referensi ke proposal di storage
+        Proposal storage p = proposals[_proposalId];
 
+        // 2. Cek Apakah Sudah Memilih
+        require(!p.voters[msg.sender], "You have already voted on this proposal.");
+
+        // 3. (Opsional) Validasi Pemilih yang Sah - Diabaikan untuk versi ini
+
+        // 4. Catat Suara
+        if (_voteYes) {
+            p.yesVotes++;
+        } else {
+            p.noVotes++;
+        }
+        p.voters[msg.sender] = true; // Tandai bahwa msg.sender sudah memilih
+
+        // 5. Emit Event
+        emit Voted(_proposalId, msg.sender, _voteYes);
+    }
+
+    // --- Fungsi-fungsi lain akan ditambahkan di bawah sini ---
 }
