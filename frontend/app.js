@@ -3,7 +3,7 @@
 // Alamat kontrak (akan kita dapatkan setelah deployment ke Hardhat Network atau Testnet)
 // Untuk sekarang, kita bisa isi dengan placeholder atau biarkan kosong dulu
 // dan isi setelah kita deploy kontrak dari Hardhat.
-const contractAddress = "0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512"; 
+const contractAddress = "0x5FbDB2315678afecb367f032d93F642f64180aa3"; 
 
 // ABI (Application Binary Interface) Kontrak Voting
 // Ini perlu Anda salin dari file artifacts/contracts/Voting.sol/Voting.json
@@ -381,9 +381,103 @@ if (connectWalletBtn) {
 
 // --- Fungsi-fungsi untuk memuat proposal, menambah proposal, dan vote akan ditambahkan di sini ---
 async function loadProposals() {
-    // Implementasi akan ditambahkan nanti
-    console.log("Fungsi loadProposals dipanggil, implementasi menyusul.");
-    proposalsListDiv.innerHTML = "<p>Memuat proposal...</p>"; // Placeholder
+    if (!votingContract) {
+        console.error("Voting contract instance is not available.");
+        if (proposalsListDiv) proposalsListDiv.innerHTML = "<p>Error: Kontrak tidak tersedia.</p>";
+        return;
+    }
+
+    console.log("Memuat proposal...");
+    if (proposalsListDiv) proposalsListDiv.innerHTML = "<p>Memuat proposal...</p>";
+    if (loadingProposalsP) loadingProposalsP.classList.remove('hidden');
+
+    try {
+        const proposalsCountBN = await votingContract.getProposalsCount(); // Simpan sebagai BigNumber
+        const proposalsCount = parseInt(proposalsCountBN.toString()); // Konversi ke integer untuk loop
+        console.log("Jumlah proposal:", proposalsCount);
+
+        if (proposalsCount === 0) { // Perbandingan dengan angka setelah konversi
+            if (proposalsListDiv) proposalsListDiv.innerHTML = "<p>Belum ada proposal yang dibuat.</p>";
+            if (loadingProposalsP) loadingProposalsP.classList.add('hidden');
+            return;
+        }
+
+        let proposalsHTML = "";
+        for (let i = 0; i < proposalsCount; i++) {
+            const proposal = await votingContract.getProposalDetails(i);
+
+            if (proposal.exists) {
+                proposalsHTML += `
+                    <div class="proposal-item" id="proposal-${proposal.id.toString()}">
+                        <h3>Proposal ID: ${proposal.id.toString()}</h3>
+                        <p>${proposal.description}</p>
+                        <p>Suara Ya: ${proposal.yesVotes.toString()}</p>
+                        <p>Suara Tidak: ${proposal.noVotes.toString()}</p>
+                        <div class="proposal-actions">
+                            <button onclick="castVote(${proposal.id.toString()}, true)">Vote Ya</button>
+                            <button onclick="castVote(${proposal.id.toString()}, false)">Vote Tidak</button>
+                        </div>
+                        <p id="voteStatus-${proposal.id.toString()}" class="vote-status"></p>
+                    </div>
+                `;
+            }
+        }
+        if (proposalsListDiv) proposalsListDiv.innerHTML = proposalsHTML;
+        if (loadingProposalsP) loadingProposalsP.classList.add('hidden');
+
+    } catch (error) {
+        console.error("Error memuat proposal:", error);
+        if (proposalsListDiv) proposalsListDiv.innerHTML = `<p>Error memuat proposal: ${error.message}</p>`;
+        if (loadingProposalsP) loadingProposalsP.classList.add('hidden');
+    }
+} 
+
+if (addProposalBtn && proposalDescriptionInput) {
+    addProposalBtn.addEventListener('click', async () => {
+        if (!votingContract || !signer) {
+            statusMessagesDiv.textContent = "Error: Kontrak atau signer tidak tersedia. Harap hubungkan wallet.";
+            statusMessagesDiv.classList.remove('hidden');
+            statusMessagesDiv.style.color = 'red';
+            return;
+        }
+
+        const description = proposalDescriptionInput.value;
+        if (!description.trim()) {
+            alert("Deskripsi proposal tidak boleh kosong!");
+            return;
+        }
+
+        statusMessagesDiv.textContent = "Menambahkan proposal...";
+        statusMessagesDiv.classList.remove('hidden');
+        statusMessagesDiv.style.color = 'blue';
+        addProposalBtn.disabled = true;
+
+        try {
+            // Pastikan interaksi dilakukan dengan signer (untuk mengirim transaksi)
+            const contractWithSigner = votingContract.connect(signer);
+            const tx = await contractWithSigner.addProposal(description);
+
+            statusMessagesDiv.textContent = `Menunggu konfirmasi transaksi proposal (hash: ${tx.hash})...`;
+            await tx.wait(); // Menunggu transaksi di-mine
+
+            statusMessagesDiv.textContent = "Proposal berhasil ditambahkan!";
+            statusMessagesDiv.style.color = 'green';
+            proposalDescriptionInput.value = ''; // Kosongkan input field
+
+            await loadProposals(); // Muat ulang daftar proposal untuk menampilkan yang baru
+
+        } catch (error) {
+            console.error("Error menambahkan proposal:", error);
+            statusMessagesDiv.textContent = `Error menambahkan proposal: ${error.message}`;
+            statusMessagesDiv.style.color = 'red';
+        } finally {
+            addProposalBtn.disabled = false; // Aktifkan kembali tombolnya
+            // Sembunyikan pesan status setelah beberapa detik
+            setTimeout(() => {
+                statusMessagesDiv.classList.add('hidden');
+            }, 5000);
+        }
+    });
 }
 
 // Jalankan pengecekan status koneksi awal jika pengguna sudah pernah menghubungkan wallet
